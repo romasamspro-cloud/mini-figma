@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { Shape as ShapeView } from './Shape'
-import type { Point, Shape, Viewport } from '../types/shape'
+import { screenToCanvas } from '../utils/geometry'
+import type { Point, Shape, ShapeType, ToolType, Viewport } from '../types/shape'
 
 const GRID_SIZE = 24
 
@@ -11,8 +12,16 @@ interface CanvasProps {
   panBy: (dx: number, dy: number) => void
   zoomAt: (point: Point, factor: number) => void
   shapes: Shape[]
+  draftShape: Shape | null
   selectedId: string | null
+  activeTool: ToolType
   selectShape: (id: string | null) => void
+  startDrawing: (type: ShapeType, point: Point) => void
+  extendDrawing: (point: Point) => void
+  commitDrawing: () => void
+  startDragging: (id: string, point: Point) => void
+  dragShape: (point: Point) => void
+  stopMovingShape: () => void
 }
 
 export function Canvas({
@@ -21,12 +30,21 @@ export function Canvas({
   panBy,
   zoomAt,
   shapes,
+  draftShape,
   selectedId,
+  activeTool,
   selectShape,
+  startDrawing,
+  extendDrawing,
+  commitDrawing,
+  startDragging,
+  dragShape,
+  stopMovingShape,
 }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const dragStartRef = useRef<Point | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isMovingShape, setIsMovingShape] = useState(false)
 
   useEffect(() => {
     const element = containerRef.current
@@ -48,10 +66,31 @@ export function Canvas({
     return () => element.removeEventListener('wheel', onWheel)
   }, [panBy, zoomAt])
 
+  const toCanvasPoint = (event: ReactMouseEvent): Point => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    return screenToCanvas(
+      {
+        x: event.clientX - (rect?.left ?? 0),
+        y: event.clientY - (rect?.top ?? 0),
+      },
+      viewport,
+    )
+  }
+
+  const handleShapeMouseDown = (id: string, event: ReactMouseEvent) => {
+    event.stopPropagation()
+    if (isSpacePressed || activeTool !== 'move') return
+    selectShape(id)
+    startDragging(id, toCanvasPoint(event))
+    setIsMovingShape(true)
+  }
+
   const handleMouseDown = (event: ReactMouseEvent) => {
     if (isSpacePressed) {
       dragStartRef.current = { x: event.clientX, y: event.clientY }
       setIsDragging(true)
+    } else if (activeTool === 'rect' || activeTool === 'ellipse') {
+      startDrawing(activeTool, toCanvasPoint(event))
     } else {
       selectShape(null)
     }
@@ -59,21 +98,33 @@ export function Canvas({
 
   const handleMouseMove = (event: ReactMouseEvent) => {
     const start = dragStartRef.current
-    if (!start) return
-    panBy(event.clientX - start.x, event.clientY - start.y)
-    dragStartRef.current = { x: event.clientX, y: event.clientY }
+    if (start) {
+      panBy(event.clientX - start.x, event.clientY - start.y)
+      dragStartRef.current = { x: event.clientX, y: event.clientY }
+      return
+    }
+    if (isMovingShape) {
+      dragShape(toCanvasPoint(event))
+      return
+    }
+    if (draftShape) extendDrawing(toCanvasPoint(event))
   }
 
   const stopDragging = () => {
     dragStartRef.current = null
     setIsDragging(false)
+    setIsMovingShape(false)
+    stopMovingShape()
+    commitDrawing()
   }
 
   const cursorClass = isDragging
     ? 'cursor-grabbing'
     : isSpacePressed
       ? 'cursor-grab'
-      : 'cursor-default'
+      : activeTool === 'rect' || activeTool === 'ellipse'
+        ? 'cursor-crosshair'
+        : 'cursor-default'
 
   return (
     <div
@@ -105,8 +156,12 @@ export function Canvas({
             key={shape.id}
             shape={shape}
             selected={shape.id === selectedId}
+            onSelect={event => handleShapeMouseDown(shape.id, event)}
           />
         ))}
+        {draftShape ? (
+          <ShapeView shape={draftShape} selected={false} />
+        ) : null}
       </div>
     </div>
   )

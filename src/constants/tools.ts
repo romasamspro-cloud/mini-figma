@@ -4,17 +4,17 @@ export interface ToolDefinition {
   id: ToolType
   label: string
   hotkey: string | null
+  code: string | null
 }
 
 export const TOOLS: ToolDefinition[] = [
-  { id: 'move', label: 'Move', hotkey: 'V' },
-  { id: 'rect', label: 'Rect', hotkey: 'R' },
-  { id: 'ellipse', label: 'Ellipse', hotkey: 'O' },
+  { id: 'move', label: 'Move', hotkey: 'V', code: 'KeyV' },
+  { id: 'rect', label: 'Rect', hotkey: 'R', code: 'KeyR' },
+  { id: 'ellipse', label: 'Ellipse', hotkey: 'O', code: 'KeyO' },
 ]
 
-export const TOOL_BY_HOTKEY: Record<string, ToolType> = Object.fromEntries(
+export const TOOL_BY_CODE: Record<string, ToolType> = Object.fromEntries(
   TOOLS.filter(
-    (tool): tool is ToolDefinition & { hotkey: string } =>
-      tool.hotkey !== null,
-  ).map(tool => [tool.hotkey.toLowerCase(), tool.id]),
+    (tool): tool is ToolDefinition & { code: string } => tool.code !== null,
+  ).map(tool => [tool.code, tool.id]),
 )
