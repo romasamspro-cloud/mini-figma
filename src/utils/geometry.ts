@@ -34,10 +34,3 @@ export function screenToCanvas(point: Point, viewport: Viewport): Point {
     y: (point.y - viewport.y) / viewport.zoom,
   }
 }
-
-export function canvasToScreen(point: Point, viewport: Viewport): Point {
-  return {
-    x: point.x * viewport.zoom + viewport.x,
-    y: point.y * viewport.zoom + viewport.y,
-  }
-}
