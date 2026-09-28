@@ -144,13 +144,6 @@ export function useShapes() {
     dragRef.current = null
   }, [])
 
-  const addShape = useCallback(
-    (shape: Shape) => {
-      apply(current => [shape, ...current])
-    },
-    [apply],
-  )
-
   const updateShape = useCallback(
     (id: string, patch: Partial<Shape>) => {
       let changed = false
@@ -219,7 +212,6 @@ export function useShapes() {
     shapes,
     selectedId,
     draftShape,
-    addShape,
     updateShape,
     removeShape,
     selectShape,
