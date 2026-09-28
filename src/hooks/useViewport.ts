@@ -8,16 +8,12 @@ const isTypingTarget = (target: EventTarget | null) =>
   target instanceof HTMLSelectElement
 
 export function useViewport() {
-  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 })
+  const [viewport, setViewport] = useState<Viewport>(() => ({
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2,
+    zoom: 1,
+  }))
   const [isSpacePressed, setIsSpacePressed] = useState(false)
-
-  useEffect(() => {
-    setViewport({
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-      zoom: 1,
-    })
-  }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
